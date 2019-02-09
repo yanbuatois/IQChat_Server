@@ -77,6 +77,11 @@ router.post('/signin', async (req, res) => {
             code: 'bad_credentials',
           });
         }
+        else if(result.isBanned()) {
+          res.status(401).json({
+            code: 'banned',
+          });
+        }
         else {
           res.status(200).json({
             code: 'success',
@@ -117,6 +122,9 @@ router.get('/get', (req, res) => {
             res.status(500).json({code: 'internal_error'});
           }
           else if(!askingUser) {
+            res.status(403).json({code: 'invalid_token'});
+          }
+          else if(askingUser.isBanned()) {
             res.status(403).json({code: 'invalid_token'});
           }
           else if(adminInfos && !askingUser.isAdmin()) {
