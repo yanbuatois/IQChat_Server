@@ -24,52 +24,12 @@ content-type: application/json
 GET {{host}}:{{port}}/users/get HTTP/1.1
   ?token={{token}}
 
-# #######
-GET {{host}}:{{port}}/admin/users/list HTTP/1.1
-  ?token={{token}}
+# # #######
+# GET {{host}}:{{port}}/admin/users/list HTTP/1.1
+#   ?token={{token}}
 
-#######
-POST {{host}}:{{port}}/admin/types/add HTTP/1.1
-Content-Type: application/json
-
-{
-  "token": "{{token}}",
-  "nom": "Anniversaire"
-}
-
-#####
-GET {{host}}:{{port}}/types/get HTTP/1.1
 
 # #######
 # GET {{host}}:{{port}}/admin/users/list HTTP/1.1
 #   ?token={{token}}
 #   &options={"status": ["admin"]}
-#####
-POST {{host}}:{{port}}/admin/destinations/add HTTP/1.1
-Content-Type: application/json
-
-{
-  "token": "{{token}}",
-  "lieu": "Tours jumelles",
-  "debut": "2001-09-11",
-  "fin": "2001-09-12",
-  "description": "Allahu Akbar !",
-  "types": [
-    "5c549b32d998462208e36b72"
-  ]
-}
-
-#
-#####
-GET {{host}}:{{port}}/destinations/get HTTP/1.1
-
-#####
-POST {{host}}:{{port}}/events/add HTTP/1.1
-Content-Type: application/json
-
-{
-  "token": "{{token}}",
-  "date": "2019-03-05",
-  "type": "5c549b32d998462208e36b72",
-  "destination": "5c54b14639c92b0c64f76c62"
-}
