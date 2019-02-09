@@ -77,7 +77,7 @@ router.post('/signin', async (req, res) => {
             code: 'bad_credentials',
           });
         }
-        else if(result.isBanned()) {
+        else if(!result.isLog()) {
           res.status(401).json({
             code: 'banned',
           });
@@ -124,7 +124,7 @@ router.get('/get', (req, res) => {
           else if(!askingUser) {
             res.status(403).json({code: 'invalid_token'});
           }
-          else if(askingUser.isBanned()) {
+          else if(!askingUser.isLog()) {
             res.status(403).json({code: 'invalid_token'});
           }
           else if(adminInfos && !askingUser.isAdmin()) {

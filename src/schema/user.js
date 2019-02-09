@@ -65,7 +65,7 @@ usersSchema.methods = {
   isAdmin: function() {
     return this.status === 'admin';
   },
-  isAllowedToLog: function() {
+  isLog: function() {
     return !(this.status === 'banned');
   }
 };
