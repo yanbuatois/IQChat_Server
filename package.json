@@ -1,0 +1,57 @@
+{
+  "name": "IQChat_Server",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Yan BUATOIS <dracoctix@outlook.fr>",
+  "keywords": [
+    "node.js",
+    "express",
+    "api",
+    "rest",
+    "chat"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yanbuatois/IQChat_Server"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "npm build",
+    "babel-node": "./node_modules/.bin/babel-node --config-file ./.babelrc",
+    "start": "./node_modules/.bin/nodemon --exec npm run babel-node -- ./src/bin/IQChat_Server.js",
+    "build": "babel src -d dist"
+  },
+  "dependencies": {
+    "bcrypt": "^3.0.4",
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "dotenv": "^6.2.0",
+    "email-validator": "^2.0.4",
+    "express": "^4.16.4",
+    "jsonwebtoken": "^8.4.0",
+    "md5": "^2.2.1",
+    "mongoose": "^5.4.10",
+    "mongoose-lean-virtuals": "^0.3.4",
+    "underscore": "^1.9.1"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.13.0",
+    "nodemon": "^1.18.9",
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.6",
+    "@babel/node": "^7.0.0",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.0.0",
+    "@babel/plugin-proposal-numeric-separator": "^7.0.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.0.0",
+    "@babel/plugin-proposal-pipeline-operator": "^7.0.0",
+    "@babel/preset-env": "^7.1.6",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.15.0",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0"
+  }
+}
