@@ -17,7 +17,7 @@ module.exports = token =>  new Promise((resolve, reject) => {
         })
         .catch(err => {
           console.error(err);
-          reject(err);
+          reject({internal: true});
         });
     })
     .catch(err => {
