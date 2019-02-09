@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongooseconnect = require('./util/mongooseconnect');
+const socketmanager = require('./socketmanager');
 
 module.exports = function main (options, cb) {
   // Set default options
@@ -43,7 +44,12 @@ module.exports = function main (options, cb) {
     })
     .catch(err => {
       console.error('Something went wrong during MongoDB connection :(', err);
-    })
+    });
+
+  const httpServer = require('http').Server(app);
+  const io = require('socket.io').listen(httpServer);
+
+  socketmanager(io);
 
   // Common middleware
   // App.use(/* ... */)
@@ -87,7 +93,7 @@ module.exports = function main (options, cb) {
   });
 
   // Start server
-  server = app.listen(opts.port, opts.host, err => {
+  server = httpServer.listen(opts.port, opts.host, err => {
     if (err) {
       return ready(err, app, server);
     }
