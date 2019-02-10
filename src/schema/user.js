@@ -48,6 +48,20 @@ usersSchema.virtual('admin').get(function() {
   return this.status === 'admin';
 });
 
+usersSchema.virtual('servers', {
+  ref: 'ServerUser',
+  localField: '_id',
+  foreignField: 'user',
+  justOne: false,
+});
+
+usersSchema.virtual('bannedservers', {
+  ref: 'Ban',
+  localField: '_id',
+  foreignField: 'user',
+  justOne: false,
+});
+
 usersSchema.methods = {
   authenticate: function(pass) {
     return bcrypt.compare(pass, this.password);
