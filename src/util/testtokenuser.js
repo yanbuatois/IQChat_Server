@@ -9,7 +9,7 @@ module.exports = token =>  new Promise((resolve, reject) => {
         reject(new Error('Identifiant invalide.'));
       }
       User.findById(id).exec()
-        .then(user => {
+        .then(async user => {
           if(!user) {
             reject(new Error('Utilisateur inexistant.'));
           }
@@ -17,7 +17,7 @@ module.exports = token =>  new Promise((resolve, reject) => {
             reject(new Error('Utilisateur banni.'));
           }
           else {
-            resolve(user);
+            resolve(await ((await user.populate('ServerUser')).populate('Server')).toObject({virtuals: true}));
           }
         })
         .catch(err => {
