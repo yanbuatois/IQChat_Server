@@ -20,16 +20,13 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "npm build",
     "babel-node": "./node_modules/.bin/babel-node --config-file ./.babelrc",
-    "start": "./node_modules/.bin/nodemon --exec npm run babel-node -- ./src/bin/IQChat_Server.js",
+    "start": "./node_modules/.bin/nodemon --exec npm run babel-node -- ./src/index.js",
     "build": "babel src -d dist"
   },
   "dependencies": {
     "bcrypt": "^3.0.4",
-    "body-parser": "^1.18.3",
-    "cors": "^2.8.5",
     "dotenv": "^6.2.0",
     "email-validator": "^2.0.4",
-    "express": "^4.16.4",
     "jsonwebtoken": "^8.4.0",
     "md5": "^2.2.1",
     "mongoose": "^5.4.10",
