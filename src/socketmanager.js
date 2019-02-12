@@ -20,7 +20,6 @@ function getServerList(user) {
  */
 function loggedUser(io, socket) {
   if(socket.user.servers) {
-    console.log(socket.user.servers);
     socket.user.servers.forEach(({server}) => {
       io.to(server._id).emit('logged-user', {
         server: server._id,
@@ -30,13 +29,15 @@ function loggedUser(io, socket) {
     });
   }
   const serveurs = getServerList(socket.user);
-  console.log(serveurs);
   socket.emit('welcome', (serveurs));
 }
 
 module.exports = (io) => {
   io.on('connection', socket => {
     console.log('Connecté.');
+
+    // Ce message est émis pour que le client sache qu'il vient de se reconnecter, et donc pour qu'il renvoie le token, le cas échéant.
+    socket.emit('connected');
 
     socket.on('create-server', async ({servername, description}) => {
       if(!servername) {
@@ -60,7 +61,6 @@ module.exports = (io) => {
           });
           await serverUser.save();
           socket.user = await getUser(socket.user._id);
-          console.log(socket.user);
           socket.join(serveurEntite._id);
           socket.emit('create-server-success', getServerList(socket.user));
         }
@@ -116,6 +116,7 @@ module.exports = (io) => {
 
     socket.on('login', async token => {
       try {
+        console.log('Reconnexion.');
         socket.user = (await testtokenuser(token));
         // if(socket.user.servers) {
         //   socket.user.servers.forEach(({server}) => {
