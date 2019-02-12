@@ -5,11 +5,11 @@ const adduser = require('./util/adduser');
 
 /**
  * On obtient la liste des serveurs auxquels l'utilisateur est inscrit.
- * @param {USer} user Utilisateur dont on veut la liste des serveurs.
+ * @param {User} user Utilisateur dont on veut la liste des serveurs.
  * @return {Array[Object]} Liste des serveurs.
  */
 function getServerList(user) {
-  return  (user.servers) ? user.servers.map(elt => elt.server) : [];
+  return  (user.servers) ? user.servers : [];
 }
 
 /**

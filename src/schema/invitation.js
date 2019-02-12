@@ -14,13 +14,6 @@ const invitation = new Schema({
     ref: 'Server',
     required: true,
   },
-  code: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    index: {
-      unique: true,
-    },
-  },
   utilisations: {
     type: Number,
     required: true,
