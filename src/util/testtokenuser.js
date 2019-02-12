@@ -1,29 +1,13 @@
 const testtoken = require('./testtoken');
 const {User} = require('../schema');
 const {isValid} = require('mongoose').Types.ObjectId;
+const getUser = require('./getuser');
 
 module.exports = token =>  new Promise((resolve, reject) => {
   testtoken(token)
-    .then(({id}) => {
-      if(!isValid(id)) {
-        reject(new Error('Identifiant invalide.'));
-      }
-      User.findById(id).exec()
-        .then(async user => {
-          if(!user) {
-            reject(new Error('Utilisateur inexistant.'));
-          }
-          else if(!user.isLog()) {
-            reject(new Error('Utilisateur banni.'));
-          }
-          else {
-            resolve(await ((await user.populate('ServerUser')).populate('Server')).toObject({virtuals: true}));
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          reject({internal: true});
-        });
+    .then(async ({id}) => {
+      const user = await getUser(id);
+      resolve(user);
     })
     .catch(err => {
       reject(err);

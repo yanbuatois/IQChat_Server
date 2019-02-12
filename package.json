@@ -18,7 +18,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "npm build",
+    "prepare": "npm run build",
     "babel-node": "./node_modules/.bin/babel-node --config-file ./.babelrc",
     "start": "./node_modules/.bin/nodemon --exec npm run babel-node -- ./src/index.js",
     "build": "babel src -d dist"

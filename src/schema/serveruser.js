@@ -23,6 +23,7 @@ const serverUserSchema = new Schema({
     type: Number,
     max: 3,
     min: 0,
+    default: 0,
   },
 });
 

@@ -1,6 +1,16 @@
-const {User} = require('./schema');
+const {User, Server, ServerUser} = require('./schema');
+const getUser = require('./util/getuser');
 const testtokenuser = require('./util/testtokenuser');
 const adduser = require('./util/adduser');
+
+/**
+ * On obtient la liste des serveurs auxquels l'utilisateur est inscrit.
+ * @param {USer} user Utilisateur dont on veut la liste des serveurs.
+ * @return {Array[Object]} Liste des serveurs.
+ */
+function getServerList(user) {
+  return  (user.servers) ? user.servers.map(elt => elt.server) : [];
+}
 
 /**
  * Un utilisateur vient de se connecter.
@@ -10,6 +20,7 @@ const adduser = require('./util/adduser');
  */
 function loggedUser(io, socket) {
   if(socket.user.servers) {
+    console.log(socket.user.servers);
     socket.user.servers.forEach(({server}) => {
       io.to(server._id).emit('logged-user', {
         server: server._id,
@@ -18,13 +29,48 @@ function loggedUser(io, socket) {
       socket.join(server._id);
     });
   }
-  socket.emit('welcome', (socket.user.servers || []));
+  const serveurs = getServerList(socket.user);
+  console.log(serveurs);
+  socket.emit('welcome', (serveurs));
 }
 
 module.exports = (io) => {
   io.on('connection', socket => {
     console.log('Connecté.');
 
+    socket.on('create-server', async ({servername, description}) => {
+      if(!servername) {
+        socket.emit('create-server-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('create-server-error', 'not_logged');
+      }
+      else {
+        try {
+          socket.user = await getUser(socket.user._id);
+          const serveur = new Server({
+            name: servername,
+            description,
+          });
+          const serveurEntite = await serveur.save();
+          const serverUser = new ServerUser({
+            user: socket.user._id,
+            server: serveurEntite._id,
+            status: 3,
+          });
+          await serverUser.save();
+          socket.user = await getUser(socket.user._id);
+          console.log(socket.user);
+          socket.join(serveurEntite._id);
+          socket.emit('create-server-success', getServerList(socket.user));
+        }
+        catch(err) {
+          socket.emit('create-server-error', err);
+        }
+      }
+    });
+
+    // CONNEXION/INSCRIPTION
     socket.on('credentials-login', async ({email, password}) => {
       console.log('reçu');
       if(!email || !password) {
@@ -34,7 +80,12 @@ module.exports = (io) => {
         try {
           const result = await User.findOne({
             email,
-          }, '+password').exec();
+          }, '+password').populate({
+            path: 'servers',
+            populate: {
+              path: 'server',
+            },
+          }).exec();
     
           if(!result) {
             socket.emit('credentials-login-error', 'bad_credentials');
@@ -49,7 +100,7 @@ module.exports = (io) => {
               socket.emit('credentials-login-error', 'banned');
             }
             else {
-              const user = await ((await result.populate('ServerUser')).populate('Server')).toObject({virtuals: true});
+              const user = await result.toObject({virtuals: true});
               socket.user = user;
               socket.emit('credentials-login-success', await (result.getToken()));
               loggedUser(io, socket);
