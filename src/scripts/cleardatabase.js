@@ -1,9 +1,10 @@
 /**
  * @type {Model}
  */
-const {User} = require('../schema');
+const {User, Invitation} = require('../schema');
 const readline = require('readline');
 const mongooseconnect = require('../util/mongooseconnect');
+const mongoose = require('mongoose');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -19,7 +20,7 @@ rl.question('Êtes-vous sûr de vouloir vider la base de données ? [y/N] ', (an
     mongooseconnect()
       .then(async () => {
         try {
-          await User.deleteMany({});
+          await Invitation.collection.drop();
           console.log('La base de données a été vidée.');
         }
         catch(err) {

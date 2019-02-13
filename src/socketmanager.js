@@ -1,7 +1,8 @@
-const {User, Server, ServerUser} = require('./schema');
+const {User, Server, ServerUser, Invitation} = require('./schema');
 const getUser = require('./util/getuser');
 const testtokenuser = require('./util/testtokenuser');
 const adduser = require('./util/adduser');
+const mongoose = require('mongoose');
 
 /**
  * On obtient la liste des serveurs auxquels l'utilisateur est inscrit.
@@ -66,6 +67,59 @@ module.exports = (io) => {
         }
         catch(err) {
           socket.emit('create-server-error', err);
+        }
+      }
+    });
+
+    socket.on('create-invitation', async ({server, uses, date}) => {
+      if(!server) {
+        socket.emit('create-invitation-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('create-invitation-error', 'not_logged');
+      }
+      else if(!mongoose.Types.ObjectId.isValid(server)) {
+        socket.emit('create-invitation-error', 'invalid_server_id');
+      }
+      else if(date && new Date(date) <= Date.now()) {
+        socket.emit('create-invitation-error', 'previous_date');
+      }
+      else if(uses && uses <= 0) {
+        socket.emit('create-invitation-error', 'invalid_uses_number');
+      }
+      else {
+        try {
+          // On actualise l'utilisateur et on vérifie si il est toujours autorisé à être connecté.
+          socket.user = await getUser(socket.user._id);
+          const serverUser = await ServerUser.findOne({
+            user: socket.user._id,
+            server,
+          }).populate('Server').exec();
+          if(!serverUser) {
+            socket.emit('create-invitation-error', 'invalid_server_id');
+          }
+          else if(serverUser.status < 1) {
+            socket.emit('create-invitation-error', 'permissions_lack');
+          }
+          else {
+            const invitation = new Invitation({
+              creator: socket.user._id,
+              server,
+              utilisations: uses,
+              expiration: date,
+            });
+            const invitAdded = await invitation.save();
+            socket.emit('create-invitation-success', invitAdded._id);
+          }
+        }
+        catch(err) {
+          if(err instanceof Error) {
+            console.error(err);
+            socket.emit('create-invitation-error', 'internal_error');
+          }
+          else {
+            socket.emit('create-invitation-error', err);
+          }
         }
       }
     });
