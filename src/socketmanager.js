@@ -71,7 +71,70 @@ module.exports = (io) => {
       }
     });
 
-    socket.on('create-invitation', async ({server, uses, date}) => {
+    socket.on('invited', async (code) => {
+      if(!code) {
+        socket.emit('invited-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('invited-error', 'not_logged');
+      }
+      else if(!mongoose.Types.ObjectId.isValid(code)) {
+        console.log('here');
+        socket.emit('invited-error', 'invalid_invitation');
+      }
+      else {
+        try {
+          socket.user = await getUser(socket.user._id);
+          const invitation = await Invitation.findById(code).populate('server').exec();
+          if(!invitation) {
+            console.log('wsh');
+            socket.emit('invited-error', 'invalid_invitation');
+          }
+          else {
+            const iObject = await invitation.toObject({virtuals: true});
+            if(!iObject.usable) {
+              console.log(iObject.usable);
+              socket.emit('invited-error', 'invalid_invitation');
+            }
+            else {
+              const serverUser = await ServerUser.findOne({
+                user: socket.user._id,
+                server: iObject.server._id,
+              }).exec();
+              if(serverUser) {
+                console.log(serverUser);
+                socket.emit('invited-error', iObject.server);
+              }
+              else {
+                invitation.use();
+                await invitation.save();
+                const lien = new ServerUser({
+                  user: socket.user._id,
+                  server: iObject.server._id,
+                  status: 0,
+                  invitation: invitation._id,
+                });
+                await lien.save();
+                socket.user = await getUser(socket.user._id);
+                console.log(socket.user);
+                socket.emit('invited-success',  iObject.server, getServerList(socket.user));
+              }
+            }
+          } 
+        }
+        catch(err) {
+          if(err instanceof Error) {
+            console.error(err);
+            socket.emit('invited-error', 'internal_error');
+          }
+          else {
+            socket.emit('invited-error', err);
+          }
+        }
+      }
+    });
+
+    socket.on('create-invitation', async ({server, nbUses, date}) => {
       if(!server) {
         socket.emit('create-invitation-error', 'invalid_request');
       }
@@ -84,7 +147,7 @@ module.exports = (io) => {
       else if(date && new Date(date) <= Date.now()) {
         socket.emit('create-invitation-error', 'previous_date');
       }
-      else if(uses && uses <= 0) {
+      else if(nbUses && nbUses <= 0) {
         socket.emit('create-invitation-error', 'invalid_uses_number');
       }
       else {
@@ -105,7 +168,7 @@ module.exports = (io) => {
             const invitation = new Invitation({
               creator: socket.user._id,
               server,
-              utilisations: uses,
+              utilisations: nbUses,
               expiration: date,
             });
             const invitAdded = await invitation.save();
