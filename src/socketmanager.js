@@ -116,7 +116,11 @@ module.exports = (io) => {
                 });
                 await lien.save();
                 socket.user = await getUser(socket.user._id);
-                console.log(socket.user);
+                io.to(iObject.server._id).emit('new-user', {
+                  server: iObject.server._id,
+                  user: socket.user._id
+                });
+                socket.join(iObject.server._id);
                 socket.emit('invited-success',  iObject.server, getServerList(socket.user));
               }
             }
