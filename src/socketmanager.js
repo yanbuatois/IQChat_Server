@@ -131,6 +131,10 @@ module.exports = (io) => {
       }
     });
 
+    socket.on('logout', () => {
+      socket.user = undefined;
+    });
+
     socket.on('invited', async (code) => {
       if(!code) {
         socket.emit('invited-error', 'invalid_request');
