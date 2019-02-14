@@ -14,6 +14,23 @@ function getServerList(user) {
 }
 
 /**
+ * Permet de prendre en charge une erreur dans la gestion du socket.
+ * @param {Error|String} err Erreur obtenue dans le bloc try.
+ * @param {SocketIO} socket Socket
+ * @param {String} channel Channel où envoyer le message d'erreur
+ * @return {undefined}
+ */
+function handle(err, socket, channel) {
+  if(err instanceof Error) {
+    console.error(err);
+    socket.emit(channel, 'internal_error');
+  }
+  else {
+    socket.emit(channel, err);
+  }
+}
+
+/**
  * Un utilisateur vient de se connecter.
  * @param {SocketIO} io Socket.io
  * @param {Socket} socket Utilisateur qui vient de se connecter.
@@ -66,7 +83,50 @@ module.exports = (io) => {
           socket.emit('create-server-success', getServerList(socket.user));
         }
         catch(err) {
-          socket.emit('create-server-error', err);
+          handle(err, socket, 'create-server-error');
+        }
+      }
+    });
+
+    socket.on('leave-server', async (id) => {
+      if(!id) {
+        socket.emit('leave-server-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('leave-server-error', 'not_logged');
+      }
+      else if(!mongoose.Types.ObjectId.isValid(id)) {
+        socket.emit('leave-server-error', 'server_not_found');
+      }
+      else {
+        try {
+          socket.user = await getUser(socket.user._id);
+          const serverUser = await ServerUser.findOne({
+            user: socket.user._id,
+            server: id,
+          }).exec();
+          if(!serverUser) {
+            socket.emit('leave-server-error', 'not_member');
+          }
+          else if(serverUser.status === 3) {
+            socket.emit('leave-server-error', 'owner');
+          }
+          else {
+            await ServerUser.findOneAndDelete({
+              user: socket.user._id,
+              server: id,
+            }).exec();
+            socket.user = await getUser(socket.user._id);
+            socket.leave(id);
+            io.to(id).send('left-user', {
+              user: socket.user._id,
+              server: id,
+            });
+            socket.emit('leave-server-success', getServerList(socket.user));
+          }
+        }
+        catch(err) {
+          handle(err, socket, 'leave-server-error');
         }
       }
     });
@@ -127,13 +187,7 @@ module.exports = (io) => {
           } 
         }
         catch(err) {
-          if(err instanceof Error) {
-            console.error(err);
-            socket.emit('invited-error', 'internal_error');
-          }
-          else {
-            socket.emit('invited-error', err);
-          }
+          handle(err, socket, 'invited-error');
         }
       }
     });
@@ -146,7 +200,7 @@ module.exports = (io) => {
         socket.emit('create-invitation-error', 'not_logged');
       }
       else if(!mongoose.Types.ObjectId.isValid(server)) {
-        socket.emit('create-invitation-error', 'invalid_server_id');
+        socket.emit('create-invitation-error', 'server_not_found');
       }
       else if(date && new Date(date) <= Date.now()) {
         socket.emit('create-invitation-error', 'previous_date');
@@ -163,7 +217,7 @@ module.exports = (io) => {
             server,
           }).populate('Server').exec();
           if(!serverUser) {
-            socket.emit('create-invitation-error', 'invalid_server_id');
+            socket.emit('create-invitation-error', 'server_not_found');
           }
           else if(serverUser.status < 1) {
             socket.emit('create-invitation-error', 'permissions_lack');
@@ -180,13 +234,7 @@ module.exports = (io) => {
           }
         }
         catch(err) {
-          if(err instanceof Error) {
-            console.error(err);
-            socket.emit('create-invitation-error', 'internal_error');
-          }
-          else {
-            socket.emit('create-invitation-error', err);
-          }
+          handle(err, socket, 'create-invitation-error');
         }
       }
     });
