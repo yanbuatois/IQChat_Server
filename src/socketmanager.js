@@ -32,12 +32,13 @@ function handle(err, socket, channel) {
 
 /**
  * Un utilisateur vient de se connecter.
- * @param {SocketIO} io Socket.io
+ * @param {Server} io Socket.io
  * @param {Socket} socket Utilisateur qui vient de se connecter.
  * @return {undefined}
  */
 function loggedUser(io, socket) {
   if(socket.user.servers) {
+    // console.log(socket.user.servers);
     socket.user.servers.forEach(({server}) => {
       io.to(server._id).emit('logged-user', {
         server: server._id,
@@ -50,12 +51,31 @@ function loggedUser(io, socket) {
   socket.emit('welcome', (serveurs));
 }
 
-module.exports = (io) => {
+/**
+ * Gère le socket.io
+ * @param {Server} io Connexion socket.io
+ * @return {undefined}
+ */
+const fonction = (io) => {
   io.on('connection', socket => {
-    console.log('Connecté.');
 
     // Ce message est émis pour que le client sache qu'il vient de se reconnecter, et donc pour qu'il renvoie le token, le cas échéant.
     socket.emit('connected');
+
+    socket.on('refresh-servers', async () => {
+      if(socket.user) {
+        try {
+          socket.user = await getUser(socket.user._id);
+          socket.emit('refresh-servers', getServerList(socket.user));
+        }
+        catch(err) {
+          socket.emit('refresh-servers-error', err);
+        }
+      }
+      else {
+        socket.emit('refresh-servers-error', 'not_logged');
+      }
+    });
 
     socket.on('create-server', async ({servername, description}) => {
       if(!servername) {
@@ -131,6 +151,54 @@ module.exports = (io) => {
       }
     });
 
+    socket.on('delete-server', async id => {
+      if(!id) {
+        socket.emit('delete-server-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('delete-server-error', 'invalid_request');
+      }
+      else if(!mongoose.Types.ObjectId.isValid(id)) {
+        socket.emit('delete-server-error', 'server_not_found');
+      }
+      else {
+        try {
+          socket.user = await getUser(socket.user._id);
+          const serverUser = await ServerUser.findOne({
+            user: socket.user._id,
+            server: id,
+          }).exec();
+          if(!serverUser) {
+            socket.emit('delete-server-error', 'not_member');
+          }
+          else if(serverUser.status < 3) {
+            socket.emit('delete-server-error', 'permissions_lack');
+          }
+          else {
+            await (await Server.findOne({_id: id}).exec()).remove();
+            socket.user = await getUser(socket.user._id);
+            socket.leave(id);
+            io.to(id).emit('servers-changed');
+            io.of('/').in(id).clients((err, socketIds) => {
+              if(err) {
+                handle(err, socket, 'delete-server-error');
+                console.error(err);
+              }
+              else {
+                socketIds.forEach(socketid => {
+                  io.sockets.sockets[socketid].leave(id);
+                });
+              }
+            });
+            socket.emit('delete-server-success', getServerList(socket.user));
+          }
+        }
+        catch(err) {
+          handle(err, socket, 'delete-server-error');
+        }
+      }
+    });
+
     socket.on('logout', () => {
       socket.user = undefined;
     });
@@ -143,7 +211,6 @@ module.exports = (io) => {
         socket.emit('invited-error', 'not_logged');
       }
       else if(!mongoose.Types.ObjectId.isValid(code)) {
-        console.log('here');
         socket.emit('invited-error', 'invalid_invitation');
       }
       else {
@@ -151,13 +218,11 @@ module.exports = (io) => {
           socket.user = await getUser(socket.user._id);
           const invitation = await Invitation.findById(code).populate('server').exec();
           if(!invitation) {
-            console.log('wsh');
             socket.emit('invited-error', 'invalid_invitation');
           }
           else {
             const iObject = await invitation.toObject({virtuals: true});
             if(!iObject.usable) {
-              console.log(iObject.usable);
               socket.emit('invited-error', 'invalid_invitation');
             }
             else {
@@ -166,7 +231,6 @@ module.exports = (io) => {
                 server: iObject.server._id,
               }).exec();
               if(serverUser) {
-                console.log(serverUser);
                 socket.emit('invited-error', iObject.server);
               }
               else {
@@ -245,7 +309,6 @@ module.exports = (io) => {
 
     // CONNEXION/INSCRIPTION
     socket.on('credentials-login', async ({email, password}) => {
-      console.log('reçu');
       if(!email || !password) {
         socket.emit('credentials-login-error', 'invalid_request');
       }
@@ -289,7 +352,6 @@ module.exports = (io) => {
 
     socket.on('login', async token => {
       try {
-        console.log('Reconnexion.');
         socket.user = (await testtokenuser(token));
         // if(socket.user.servers) {
         //   socket.user.servers.forEach(({server}) => {
@@ -336,3 +398,5 @@ module.exports = (io) => {
     });
   });
 };
+
+module.exports = fonction;

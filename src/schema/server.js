@@ -44,20 +44,19 @@ serverSchema.virtual('messages', {
   justOne: false,
 });
 
-serverSchema.pre('remove', function(next) {
-  SchemaModels.ServerUser.remove({
+serverSchema.pre('remove', {document: true}, async function() {
+  await SchemaModels.ServerUser.deleteMany({
     server: this._id,
-  });
-  SchemaModels.Ban.remove({
+  }).exec();
+  await SchemaModels.Ban.deleteMany({
     server: this._id,
-  });
-  SchemaModels.Invitation.remove({
+  }).exec();
+  await SchemaModels.Invitation.deleteMany({
     server: this._id,
-  });
-  SchemaModels.Message.remove({
+  }).exec();
+  await SchemaModels.Message.deleteMany({
     server: this._id,
-  });
-  next();
+  }).exec();
 });
 
 module.exports = mongoose.model('Server', serverSchema);

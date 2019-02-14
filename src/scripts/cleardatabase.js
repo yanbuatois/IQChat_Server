@@ -1,10 +1,10 @@
 /**
  * @type {Model}
  */
-const {User, Invitation} = require('../schema');
+const {User, Invitation, Server, ServerUser, Ban, Message} = require('../schema');
 const readline = require('readline');
 const mongooseconnect = require('../util/mongooseconnect');
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -21,6 +21,11 @@ rl.question('Êtes-vous sûr de vouloir vider la base de données ? [y/N] ', (an
       .then(async () => {
         try {
           await Invitation.collection.drop();
+          await User.collection.drop();
+          await Server.collection.drop();
+          await ServerUser.collection.drop();
+          // await Ban.collection.drop();
+          // await Message.collection.drop();
           console.log('La base de données a été vidée.');
         }
         catch(err) {

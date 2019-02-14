@@ -21,7 +21,8 @@
     "prepare": "npm run build",
     "babel-node": "./node_modules/.bin/babel-node --config-file ./.babelrc",
     "start": "./node_modules/.bin/nodemon --exec npm run babel-node -- ./src/index.js",
-    "build": "babel src -d dist"
+    "build": "babel src -d dist",
+    "clear-database": "node ./dist/scripts/cleardatabase.js"
   },
   "dependencies": {
     "bcrypt": "^3.0.4",
