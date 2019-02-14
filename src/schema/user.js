@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const md5 = require('md5');
+const SchemaModel = require('./index');
 
 const usersSchema = new Schema({
   username: {
@@ -83,6 +84,15 @@ usersSchema.methods = {
     return !(this.status === 'banned');
   }
 };
+
+usersSchema.pre('remove', function(next) {
+  SchemaModel.Message.updateMany({
+    author: this._id,
+  }, {
+    author: null,
+  });
+  next();
+});
 
 /**
  * 

@@ -3,6 +3,8 @@ const {Schema} = mongoose;
 const {Types} = Schema;
 const {ObjectId} = Types;
 
+const SchemaModels = require('./index');
+
 const invitation = new Schema({
   creator: {
     type: ObjectId,
@@ -33,6 +35,15 @@ const invitation = new Schema({
 
 invitation.virtual('usable').get(function () {
   return (!(this.utilisations === 0)) && (this.expiration === null || Date.now() < this.expiration);
+});
+
+invitation.pre('remove', function(next) {
+  SchemaModels.ServerUser.updateMany({
+    invitation: this._id,
+  }, {
+    invitation: null,
+  });
+  next();
 });
 
 invitation.methods = {

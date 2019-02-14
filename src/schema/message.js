@@ -7,7 +7,6 @@ const messageSchema = new Schema({
   author: {
     type: ObjectId,
     ref: 'User',
-    required: true,
   },
   server: {
     type: ObjectId, 
