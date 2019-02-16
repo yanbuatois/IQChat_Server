@@ -1,4 +1,4 @@
-const {User, Server, ServerUser, Invitation} = require('./schema');
+const {User, Server, ServerUser, Invitation, Message, Ban} = require('./schema');
 const getUser = require('./util/getuser');
 const testtokenuser = require('./util/testtokenuser');
 const adduser = require('./util/adduser');
@@ -47,8 +47,8 @@ function loggedUser(io, socket) {
       socket.join(server._id);
     });
   }
-  const serveurs = getServerList(socket.user);
-  socket.emit('welcome', (serveurs));
+  // const serveurs = getServerList(socket.user);
+  socket.emit('welcome', socket.user);
 }
 
 /**
@@ -74,6 +74,43 @@ const fonction = (io) => {
       }
       else {
         socket.emit('refresh-servers-error', 'not_logged');
+      }
+    });
+
+    socket.on('get-server-messages', async id => {
+      if(!id) {
+        socket.emit('get-server-messages-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('get-server-messages-error', 'not_logged');
+      }
+      else if(!mongoose.Types.ObjectId.isValid(id)) {
+        socket.emit('get-server-messages-error', 'server_not_found');
+      }
+      else {
+        try {
+          socket.user = await getUser(socket.user._id);
+          const serveur = await Server.findById(id).exec();
+          const serverUser = await ServerUser.find({
+            user: socket.user._id,
+            server: id,
+          });
+          if(!serveur) {
+            socket.emit('get-server-messages-error', 'server_not_found');
+          }
+          else if(!serverUser) {
+            socket.emit('get-server-messages-error', 'not_member');
+          }
+          else {
+            const messages = await Message.find({server: id, deleted: false}).populate('author').exec();
+            const msgObjects = messages.map(elt => elt.toObject());
+
+            socket.emit('get-server-messages-success', msgObjects);
+          }
+        }
+        catch(err) {
+          handle(err, socket, 'get-server-messages-error');
+        }
       }
     });
 
