@@ -275,7 +275,7 @@ const fonction = (io) => {
                 socket.emit('invited-error', iObject.server);
               }
               else if(ban) {
-                socket.emit('invited-error', 'server-banned');
+                socket.emit('invited-error', 'server_banned');
               }
               else {
                 invitation.use();
