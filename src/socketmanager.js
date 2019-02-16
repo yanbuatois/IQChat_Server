@@ -267,8 +267,15 @@ const fonction = (io) => {
                 user: socket.user._id,
                 server: iObject.server._id,
               }).exec();
+              const ban = await Ban.findOne({
+                user: socket.user._id,
+                server: iObject.server._id,
+              }).exec();
               if(serverUser) {
                 socket.emit('invited-error', iObject.server);
+              }
+              else if(ban) {
+                socket.emit('invited-error', 'server-banned');
               }
               else {
                 invitation.use();
