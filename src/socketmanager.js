@@ -240,6 +240,48 @@ const fonction = (io) => {
       socket.user = undefined;
     });
 
+    socket.on('send-message', async ({message, server}) => {
+      if(!message || !server) {
+        socket.emit('send-message-error', 'invalid_request');
+      }
+      else if(!socket.user) {
+        socket.emit('send-message-error', 'not_logged');
+      }
+      else if(!mongoose.Types.ObjectId.isValid(server)) {
+        socket.emit('send-message-error', 'server_not_found');
+      }
+      else {
+        try {
+          socket.user = await getUser(socket.user._id);
+          const serverUser = ServerUser.find({
+            user: socket.user._id,
+            server,
+          });
+          const content = message.trimEnd();
+          if(!serverUser) {
+            socket.emit('send-message-error', 'not_member');
+          }
+          else if(!content) {
+            socket.emit('send-message-error', 'empty_message');
+          }
+          else {
+            const msg = new Message({
+              author: socket.user._id,
+              server,
+              content,
+            });
+            const msgResult = await msg.save();
+            const envoi = await msgResult.populate('author').execPopulate();
+            socket.emit('send-message-success', envoi);
+            io.to(server).emit('new-message', envoi);
+          }
+        }
+        catch(err) {
+          handle(err, socket, 'send-message-error');
+        }
+      }
+    });
+
     socket.on('invited', async (code) => {
       if(!code) {
         socket.emit('invited-error', 'invalid_request');
