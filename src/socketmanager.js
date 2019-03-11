@@ -3,6 +3,7 @@ const getUser = require('./util/getuser');
 const testtokenuser = require('./util/testtokenuser');
 const adduser = require('./util/adduser');
 const mongoose = require('mongoose');
+const _ = require('underscore');
 
 /**
  * On obtient la liste des serveurs auxquels l'utilisateur est inscrit.
@@ -77,15 +78,15 @@ const fonction = (io) => {
       }
     });
 
-    socket.on('get-server-messages', async id => {
+    socket.on('get-server-infos', async id => {
       if(!id) {
-        socket.emit('get-server-messages-error', 'invalid_request');
+        socket.emit('get-server-infos-error', 'invalid_request');
       }
       else if(!socket.user) {
-        socket.emit('get-server-messages-error', 'not_logged');
+        socket.emit('get-server-infos-error', 'not_logged');
       }
       else if(!mongoose.Types.ObjectId.isValid(id)) {
-        socket.emit('get-server-messages-error', 'server_not_found');
+        socket.emit('get-server-infos-error', 'server_not_found');
       }
       else {
         try {
@@ -96,20 +97,37 @@ const fonction = (io) => {
             server: id,
           });
           if(!serveur) {
-            socket.emit('get-server-messages-error', 'server_not_found');
+            socket.emit('get-server-infos-error', 'server_not_found');
           }
           else if(!serverUser) {
-            socket.emit('get-server-messages-error', 'not_member');
+            socket.emit('get-server-infos-error', 'not_member');
           }
           else {
             const messages = await Message.find({server: id, deleted: false}).populate('author').exec();
+            const serverUsers = await ServerUser.find({
+              server: id,
+            }).populate('user').exec();
+            const serverUsersObjects = await Promise.all(serverUsers.map(objet => objet.toObject({virtuals: true})));
+
+            const {sockets} = io.sockets.adapter.rooms[id];
+            const loggedUsers = Object.keys(sockets).map(idElt => io.sockets.connected[idElt].user);
+            // console.log(loggedUsers);
+            // console.log(serverUsersObjects);
+            const containsUser = elt => _.some(loggedUsers, su => su._id.toString() === elt._id.toString());
+            const logged = serverUsersObjects.filter(({user}) => containsUser(user));
+            const unlogged = _.difference(serverUsersObjects, logged);
+
             const msgObjects = messages.map(elt => elt.toObject());
 
-            socket.emit('get-server-messages-success', msgObjects);
+            socket.emit('get-server-infos-success', {
+              messages: msgObjects,
+              loggedUsers: logged,
+              otherUsers: unlogged,
+            });
           }
         }
         catch(err) {
-          handle(err, socket, 'get-server-messages-error');
+          handle(err, socket, 'get-server-infos-error');
         }
       }
     });
