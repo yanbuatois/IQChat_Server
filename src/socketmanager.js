@@ -133,6 +133,7 @@ const fonction = (io) => {
     });
 
     socket.on('create-server', async ({servername, description}) => {
+      servername = servername.trim();
       if(!servername) {
         socket.emit('create-server-error', 'invalid_request');
       }
